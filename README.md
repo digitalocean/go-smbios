@@ -26,6 +26,6 @@ if err != nil {
 }
 
 for _, s := range ss {
-	log.Println(s)
+	fmt.Println(s)
 }
 ```
