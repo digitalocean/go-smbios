@@ -22,17 +22,45 @@ import (
 	"os"
 )
 
-// stream opens a SMBIOS structure stream.
-func stream() (io.ReadCloser, error) {
+// sysfs locations for SMBIOS information.
+const (
+	sysfsDMI        = "/sys/firmware/dmi/tables/DMI"
+	sysfsEntryPoint = "/sys/firmware/dmi/tables/smbios_entry_point"
+)
+
+// stream opens the SMBIOS entry point and an SMBIOS structure stream.
+func stream() (io.ReadCloser, EntryPoint, error) {
 	// First, check for the sysfs location present in modern kernels.
-	f, err := os.Open("/sys/firmware/dmi/tables/DMI")
+	_, err := os.Stat(sysfsEntryPoint)
 	switch {
 	case err == nil:
-		return f, nil
+		return sysfsStream()
 	case os.IsNotExist(err):
 		// TODO(mdlayher): try reading /dev/mem and fail if no data present.
-		return nil, errors.New("reading from /dev/mem not yet supported on Linux")
+		return nil, nil, errors.New("reading from /dev/mem not yet supported on Linux")
 	default:
-		return nil, err
+		return nil, nil, err
 	}
+}
+
+// sysfsStream reads the SMBIOS entry point and structure stream from
+// the modern sysfs locations.
+func sysfsStream() (io.ReadCloser, EntryPoint, error) {
+	epf, err := os.Open(sysfsEntryPoint)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer epf.Close()
+
+	ep, err := ParseEntryPoint(epf)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	sf, err := os.Open(sysfsDMI)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return sf, ep, nil
 }

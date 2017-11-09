@@ -24,7 +24,7 @@ import (
 
 func main() {
 	// Find SMBIOS data in operating system-specific location.
-	rc, err := smbios.Stream()
+	rc, ep, err := smbios.Stream()
 	if err != nil {
 		log.Fatalf("failed to open stream: %v", err)
 	}
@@ -37,6 +37,10 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to decode structures: %v", err)
 	}
+
+	// Determine SMBIOS version from entry point.
+	major, minor, rev := ep.Version()
+	fmt.Printf("SMBIOS %d.%d.%d\n", major, minor, rev)
 
 	for _, s := range ss {
 		fmt.Println(s)
