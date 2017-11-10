@@ -28,6 +28,7 @@ func TestParseEntryPoint(t *testing.T) {
 		b                      []byte
 		ep                     smbios.EntryPoint
 		major, minor, revision int
+		addr, size             int
 		ok                     bool
 	}{
 		{
@@ -134,6 +135,7 @@ func TestParseEntryPoint(t *testing.T) {
 				BCDRevision:           0x28,
 			},
 			major: 2, minor: 8, revision: 0,
+			addr: 0x7af09000, size: 0x0f5f,
 			ok: true,
 		},
 		{
@@ -170,6 +172,7 @@ func TestParseEntryPoint(t *testing.T) {
 				BCDRevision:           0x28,
 			},
 			major: 2, minor: 8, revision: 0,
+			addr: 0x7af09000, size: 0x0f5f,
 			ok: true,
 		},
 		{
@@ -232,6 +235,7 @@ func TestParseEntryPoint(t *testing.T) {
 				StructureTableAddress: 0x0eb3b0,
 			},
 			major: 3, minor: 0, revision: 0,
+			addr: 0x0eb3b0, size: 0x0953,
 			ok: true,
 		},
 		{
@@ -259,6 +263,7 @@ func TestParseEntryPoint(t *testing.T) {
 				StructureTableAddress: 0x0eb3b0,
 			},
 			major: 3, minor: 0, revision: 0,
+			addr: 0x0eb3b0, size: 0x0953,
 			ok: true,
 		},
 	}
@@ -285,11 +290,19 @@ func TestParseEntryPoint(t *testing.T) {
 			}
 
 			major, minor, revision := ep.Version()
-			want := []int{tt.major, tt.minor, tt.revision}
-			got := []int{major, minor, revision}
+			wantVersion := []int{tt.major, tt.minor, tt.revision}
+			gotVersion := []int{major, minor, revision}
 
-			if diff := cmp.Diff(want, got); diff != "" {
+			if diff := cmp.Diff(wantVersion, gotVersion); diff != "" {
 				t.Fatalf("unexpected SMBIOS version (-want +got):\n%s", diff)
+			}
+
+			addr, size := ep.Table()
+			wantTable := []int{tt.addr, tt.size}
+			gotTable := []int{addr, size}
+
+			if diff := cmp.Diff(wantTable, gotTable); diff != "" {
+				t.Fatalf("unexpected SMBIOS table info (-want +got):\n%s", diff)
 			}
 		})
 	}

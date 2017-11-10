@@ -38,9 +38,12 @@ func main() {
 		log.Fatalf("failed to decode structures: %v", err)
 	}
 
-	// Determine SMBIOS version from entry point.
+	// Determine SMBIOS version and table location from entry point.
 	major, minor, rev := ep.Version()
-	fmt.Printf("SMBIOS %d.%d.%d\n", major, minor, rev)
+	addr, size := ep.Table()
+
+	fmt.Printf("SMBIOS %d.%d.%d - table: address: %#x, size: %d\n",
+		major, minor, rev, addr, size)
 
 	for _, s := range ss {
 		fmt.Println(s)
