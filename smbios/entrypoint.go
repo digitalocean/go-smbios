@@ -24,17 +24,24 @@ import (
 
 // Anchor strings used to detect entry points.
 var (
+	// Used when searching for an entry point in memory.
+	magicPrefix = []byte("_SM")
+
+	// Used to determine specific entry point types.
 	magic32  = []byte("_SM_")
 	magic64  = []byte("_SM3_")
 	magicDMI = []byte("_DMI_")
 )
 
 // An EntryPoint is an SMBIOS entry point.  EntryPoints contain various
-// properties about SMBIOS, including its major, minor, and revision version
-// numbers.
+// properties about SMBIOS.
 //
 // Use a type assertion to access detailed EntryPoint information.
 type EntryPoint interface {
+	// Table returns the memory address and maximum size of the SMBIOS table.
+	Table() (address, size int)
+
+	// Version returns the system's SMBIOS version.
 	Version() (major, minor, revision int)
 }
 
@@ -81,9 +88,14 @@ type EntryPoint32Bit struct {
 	BCDRevision           uint8
 }
 
+// Table implements EntryPoint.
+func (e *EntryPoint32Bit) Table() (address, size int) {
+	return int(e.StructureTableAddress), int(e.StructureTableLength)
+}
+
 // Version implements EntryPoint.
-func (h *EntryPoint32Bit) Version() (major, minor, revision int) {
-	return int(h.Major), int(h.Minor), 0
+func (e *EntryPoint32Bit) Version() (major, minor, revision int) {
+	return int(e.Major), int(e.Minor), 0
 }
 
 // parse32 parses an EntryPoint32Bit from b.
@@ -93,12 +105,14 @@ func parse32(b []byte) (*EntryPoint32Bit, error) {
 	// Correct minimum length as of SMBIOS 3.1.1.
 	const expLen = 31
 	if l < expLen {
-		return nil, fmt.Errorf("expected SMBIOS 32-bit entry point length of at least %d, but got: %d", expLen, l)
+		return nil, fmt.Errorf("expected SMBIOS 32-bit entry point minimum length of at least %d, but got: %d", expLen, l)
 	}
 
+	// Allow more data in the buffer than the actual length, for when the
+	// entry point is being read from system memory.
 	length := b[5]
-	if l != int(length) {
-		return nil, fmt.Errorf("expected SMBIOS 32-bit entry point length %d, but got: %d", length, l)
+	if l < int(length) {
+		return nil, fmt.Errorf("expected SMBIOS 32-bit entry point actual length of at least %d, but got: %d", length, l)
 	}
 
 	// Look for intermediate anchor with DMI magic.
@@ -110,7 +124,7 @@ func parse32(b []byte) (*EntryPoint32Bit, error) {
 	// Entry point checksum occurs at index 4, compute and verify it.
 	const epChkIndex = 4
 	epChk := b[epChkIndex]
-	if err := checksum(epChk, epChkIndex, b); err != nil {
+	if err := checksum(epChk, epChkIndex, b[:length]); err != nil {
 		return nil, err
 	}
 
@@ -154,9 +168,14 @@ type EntryPoint64Bit struct {
 	StructureTableAddress uint64
 }
 
+// Table implements EntryPoint.
+func (e *EntryPoint64Bit) Table() (address, size int) {
+	return int(e.StructureTableAddress), int(e.StructureTableMaxSize)
+}
+
 // Version implements EntryPoint.
-func (h *EntryPoint64Bit) Version() (major, minor, revision int) {
-	return int(h.Major), int(h.Minor), int(h.Revision)
+func (e *EntryPoint64Bit) Version() (major, minor, revision int) {
+	return int(e.Major), int(e.Minor), int(e.Revision)
 }
 
 // parse64 parses an EntryPoint64Bit from b.
@@ -166,12 +185,14 @@ func parse64(b []byte) (*EntryPoint64Bit, error) {
 	// Correct minimum length as of SMBIOS 3.1.1.
 	const expLen = 24
 	if l < expLen {
-		return nil, fmt.Errorf("expected SMBIOS 64-bit entry point length of at least %d, but got: %d", expLen, l)
+		return nil, fmt.Errorf("expected SMBIOS 64-bit entry point minimum length of at least %d, but got: %d", expLen, l)
 	}
 
+	// Allow more data in the buffer than the actual length, for when the
+	// entry point is being read from system memory.
 	length := b[6]
-	if l != int(length) {
-		return nil, fmt.Errorf("expected SMBIOS 64-bit entry point length %d, but got: %d", length, l)
+	if l < int(length) {
+		return nil, fmt.Errorf("expected SMBIOS 64-bit entry point actual length of at least %d, but got: %d", length, l)
 	}
 
 	// Checksum occurs at index 5, compute and verify it.
