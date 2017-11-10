@@ -41,15 +41,15 @@ type Decoder struct {
 	b  []byte
 }
 
-// Stream locates and opens a stream of SMBIOS data from an operating
-// system-specific location.  The stream must be closed after decoding
-// to free its resources.
+// Stream locates and opens a stream of SMBIOS data and the SMBIOS entry
+// point from an operating system-specific location.  The stream must be
+// closed after decoding to free its resources.
 //
 // If no suitable location is found, an error is returned.
-func Stream() (io.ReadCloser, error) {
-	rc, err := stream()
+func Stream() (io.ReadCloser, EntryPoint, error) {
+	rc, ep, err := stream()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// The io.ReadCloser from stream could be any one of a number of types
@@ -58,7 +58,7 @@ func Stream() (io.ReadCloser, error) {
 	// To prevent the caller from potentially tampering with something dangerous
 	// like mmap'd memory by using a type assertion, we make the io.ReadCloser
 	// into an opaque and unexported type to prevent type assertion.
-	return &opaqueReadCloser{rc: rc}, nil
+	return &opaqueReadCloser{rc: rc}, ep, nil
 }
 
 // NewDecoder creates a Decoder which decodes Structures from the input stream.
