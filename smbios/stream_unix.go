@@ -12,17 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//+build !dragonfly,!freebsd,!linux,!netbsd,!openbsd,!solaris
+//+build dragonfly freebsd netbsd openbsd solaris
+
+// Linux intentionally omitted because it has an alternative method that
+// is used before attempting /dev/mem access.  See stream_linux.go.
 
 package smbios
 
 import (
-	"fmt"
 	"io"
-	"runtime"
 )
 
-// stream is not implemented for unsupported platforms.
+// stream opens the SMBIOS entry point and an SMBIOS structure stream.
 func stream() (io.ReadCloser, EntryPoint, error) {
-	return nil, nil, fmt.Errorf("opening SMBIOS stream not implemented on %q", runtime.GOOS)
+	// Use the standard UNIX-like system method.
+	return devMemStream()
 }
