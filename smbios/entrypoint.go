@@ -178,14 +178,22 @@ func (e *EntryPoint64Bit) Version() (major, minor, revision int) {
 	return int(e.Major), int(e.Minor), int(e.Revision)
 }
 
+const (
+	// expLen64 is the expected minimum length of a 64-bit entry point.
+	// Correct minimum length as of SMBIOS 3.1.1.
+	expLen64 = 24
+
+	// chkIndex64 is the index of the checksum byte in a 64-bit entry point.
+	chkIndex64 = 5
+)
+
 // parse64 parses an EntryPoint64Bit from b.
 func parse64(b []byte) (*EntryPoint64Bit, error) {
 	l := len(b)
 
-	// Correct minimum length as of SMBIOS 3.1.1.
-	const expLen = 24
-	if l < expLen {
-		return nil, fmt.Errorf("expected SMBIOS 64-bit entry point minimum length of at least %d, but got: %d", expLen, l)
+	// Ensure expected minimum length.
+	if l < expLen64 {
+		return nil, fmt.Errorf("expected SMBIOS 64-bit entry point minimum length of at least %d, but got: %d", expLen64, l)
 	}
 
 	// Allow more data in the buffer than the actual length, for when the
@@ -196,9 +204,8 @@ func parse64(b []byte) (*EntryPoint64Bit, error) {
 	}
 
 	// Checksum occurs at index 5, compute and verify it.
-	const chkIndex = 5
-	chk := b[chkIndex]
-	if err := checksum(chk, chkIndex, b); err != nil {
+	chk := b[chkIndex64]
+	if err := checksum(chk, chkIndex64, b); err != nil {
 		return nil, err
 	}
 
