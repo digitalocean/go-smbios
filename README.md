@@ -45,7 +45,12 @@ requests are welcome to add support for these operating systems.
 Example
 -------
 
-See `cmd/lssmbios` for a runnable example.  Here's the gist of it:
+See `cmd/lssmbios` for a runnable example.  Note that retrieving SMBIOS
+information is a privileged operation.  On Linux, you may invoke the binary
+as root directly, or apply the `CAP_DAC_OVERRIDE` capability to enable reading
+the information without superuser access.
+
+Here's the gist of it:
 
 ```go
 // Find SMBIOS data in operating system-specific location.
