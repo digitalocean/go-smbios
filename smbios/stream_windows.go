@@ -17,6 +17,7 @@ package smbios
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -26,11 +27,19 @@ import (
 
 const (
 	firmwareTableProviderSigRSMB uint32 = 0x52534d42 // 'RSMB' in ASCII
+
+	// smbiosDataHeaderSize is size of the "header" (non-variable) part of the
+	// RawSMBIOSData struct. This serves as both the offset to the actual
+	// SMBIOS table data, and the minimum possible size of a valid RawSMBIOSDATA
+	// struct (with a table length of 0).
+	rawSMBIOSDataHeaderSize = 8
 )
 
 var (
 	libKernel32 = syscall.NewLazyDLL("kernel32.dll")
 
+	// MSDN Documentation for GetSystemFirmwareTable:
+	// https://msdn.microsoft.com/en-us/library/windows/desktop/ms724379(v=vs.85).aspx
 	procGetSystemFirmwareTable = libKernel32.NewProc("GetSystemFirmwareTable")
 )
 
@@ -49,7 +58,7 @@ func nativeEndian() binary.ByteOrder {
 
 // WindowsEntryPoint contains SMBIOS Table entry point data returned from
 // GetSystemFirmwareTable. As raw access to the underlying memory is not given,
-// the full bredth of information is not available.
+// the full breadth of information is not available.
 type WindowsEntryPoint struct {
 	Size         uint32
 	MajorVersion byte
@@ -77,8 +86,18 @@ func stream() (io.ReadCloser, EntryPoint, error) {
 		uintptr(0),
 	)
 
+	// LazyProc.Call will always return err != nil, so we need to check the primary
+	// return value (r1) to determine whether or not an error occurred.
+	// In this case, r1 should contain the size of the needed buffer, so it will only
+	// be 0 if the function call failed for some reason.
+	//
+	// Godoc for LazyProc.Call:
+	// https://golang.org/pkg/syscall/?GOOS=windows&GOARCH=amd64#LazyProc.Call
 	if r1 == 0 {
 		return nil, nil, fmt.Errorf("failed to determine size of buffer needed: %v", err)
+	}
+	if r1 < rawSMBIOSDataHeaderSize {
+		return nil, nil, fmt.Errorf("reported buffer size smaller than expected: reported %d, expected >= 8", r1)
 	}
 
 	bufferSize := uint32(r1)
@@ -90,8 +109,21 @@ func stream() (io.ReadCloser, EntryPoint, error) {
 		uintptr(unsafe.Pointer(&buffer[0])),
 		uintptr(bufferSize),
 	)
-	if uint32(r1) != bufferSize {
-		return nil, nil, fmt.Errorf("failed to read SMBIOS data: expected %d bytes, read %d bytes: %v", bufferSize, r1, err)
+	bytesWritten := uint32(r1)
+
+	// Check for the two possible failure cases documented in API:
+	if bytesWritten > bufferSize {
+		return nil, nil, fmt.Errorf("buffer size was too small, somehow: have %d bytes, Windows wanted %d bytes", bufferSize, bytesWritten)
+	}
+	if bytesWritten == 0 {
+		return nil, nil, fmt.Errorf("failed to read SMBIOS data: %v", err)
+	}
+
+	// At this point, bytesWritten <= bufferSize, which means the call succeeded as
+	// per the MSDN documentation.
+	// Do an additional check to make sure the actual amount written is sane.
+	if bytesWritten < rawSMBIOSDataHeaderSize {
+		return nil, nil, fmt.Errorf("GetSystemFirmwareTable wrote less data than expected: wrote %d bytes, expected at least 8 bytes", bytesWritten)
 	}
 
 	// When calling GetSystemFirmwareTable with FirmwareTableProviderSignature = "RSMB",
@@ -109,11 +141,10 @@ func stream() (io.ReadCloser, EntryPoint, error) {
 	//	}
 
 	tableSize := nativeEndian().Uint32(buffer[4:8])
-	// Paraoid check to make sure we don't try to go past the end of the buffer
-	// if the byte order was wrong.
-	if tableSize > bufferSize-8 {
-		tableSize = bufferSize - 8
+	if rawSMBIOSDataHeaderSize+tableSize > bytesWritten {
+		return nil, nil, errors.New("reported SMBIOS table size exceeds buffer")
 	}
+
 	entryPoint := &WindowsEntryPoint{
 		MajorVersion: buffer[1],
 		MinorVersion: buffer[2],
@@ -121,7 +152,7 @@ func stream() (io.ReadCloser, EntryPoint, error) {
 		Size:         tableSize,
 	}
 
-	tableBuff := buffer[8 : 8+tableSize]
+	tableBuff := buffer[rawSMBIOSDataHeaderSize : rawSMBIOSDataHeaderSize+tableSize]
 
 	return ioutil.NopCloser(bytes.NewReader(tableBuff)), entryPoint, nil
 }
