@@ -16,6 +16,7 @@ package smbios
 
 import (
 	"bytes"
+	"encoding/binary"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -32,6 +33,19 @@ var (
 
 	procGetSystemFirmwareTable = libKernel32.NewProc("GetSystemFirmwareTable")
 )
+
+// nativeEndian returns the native byte order of this system.
+func nativeEndian() binary.ByteOrder {
+	// Determine endianness by interpreting a uint16 as a byte slice.
+	v := uint16(1)
+	b := *(*[2]byte)(unsafe.Pointer(&v))
+
+	if b[0] == 1 {
+		return binary.LittleEndian
+	}
+
+	return binary.BigEndian
+}
 
 // WindowsEntryPoint contains SMBIOS Table entry point data returned from
 // GetSystemFirmwareTable. As raw access to the underlying memory is not given,
@@ -94,7 +108,7 @@ func stream() (io.ReadCloser, EntryPoint, error) {
 	//		BYTE 	SMBIOSTableData[];
 	//	}
 
-	tableSize := nativeByteOrder.Uint32(buffer[4:8])
+	tableSize := nativeEndian().Uint32(buffer[4:8])
 	// Paraoid check to make sure we don't try to go past the end of the buffer
 	// if the byte order was wrong.
 	if tableSize > bufferSize-8 {
