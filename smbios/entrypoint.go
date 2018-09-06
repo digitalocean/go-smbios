@@ -244,3 +244,24 @@ func checksum(start uint8, chkIndex int, b []byte) error {
 
 	return nil
 }
+
+// WindowsEntryPoint contains SMBIOS Table entry point data returned from
+// GetSystemFirmwareTable. As raw access to the underlying memory is not given,
+// the full breadth of information is not available.
+type WindowsEntryPoint struct {
+	Size         uint32
+	MajorVersion byte
+	MinorVersion byte
+	Revision     byte
+}
+
+// Table implements EntryPoint. The returned address will always be 0, as it
+// is not returned by GetSystemFirmwareTable.
+func (e *WindowsEntryPoint) Table() (address, size int) {
+	return 0, int(e.Size)
+}
+
+// Version implements EntryPoint.
+func (e *WindowsEntryPoint) Version() (major, minor, revision int) {
+	return int(e.MajorVersion), int(e.MinorVersion), int(e.Revision)
+}
