@@ -95,8 +95,6 @@ func stream() (io.ReadCloser, EntryPoint, error) {
 	//		BYTE 	SMBIOSTableData[];
 	//	}
 
-	//fmt.Fprintf(os.Stderr, "BUFFER: %s\n", hex.EncodeToString(buffer))
-
 	// There should now be a RawSMBIOSData struct located at the beginning of the
 	// buffer.
 	entryPoint := &WindowsEntryPoint{
