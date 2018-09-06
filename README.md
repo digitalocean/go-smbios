@@ -37,10 +37,11 @@ Supported operating systems and their SMBIOS retrieval mechanisms include:
 - NetBSD (/dev/mem)
 - OpenBSD (/dev/mem)
 - Solaris (/dev/mem)
+- Windows (GetSystemFirmwareTable)
 
-At this time, Windows and macOS are not supported, as they do not expose
+At this time, macOS is not supported, as it does not expose
 SMBIOS information in the same way as the supported operating systems. Pull
-requests are welcome to add support for these operating systems.
+requests are welcome to add support for additional operating systems.
 
 Example
 -------
