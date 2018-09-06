@@ -78,7 +78,7 @@ func (e *WindowsEntryPoint) Version() (major, minor, revision int) {
 }
 
 func stream() (io.ReadCloser, EntryPoint, error) {
-	// Call first with empty buffer to get size
+	// Call first with empty buffer to get size.
 	r1, _, err := procGetSystemFirmwareTable.Call(
 		uintptr(firmwareTableProviderSigRSMB),
 		uintptr(0),
