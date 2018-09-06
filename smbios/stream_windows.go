@@ -26,7 +26,13 @@ import (
 )
 
 const (
-	firmwareTableProviderSigRSMB uint32 = 0x52534d42 // 'RSMB' in ASCII
+	// firmwareTableProviderSigRSMB is the identifier for the raw SMBIOS firmware table
+	// provider.
+	// It is equal to the ASCII characters 'RSMB' packed into a uint32.
+	// In the C++ example code in the MSDN documentation, this is specified using
+	// multi-byte character literals, which are automatically coerced to an integer by
+	// the C++ compiler.
+	firmwareTableProviderSigRSMB uint32 = 0x52534d42
 
 	// smbiosDataHeaderSize is size of the "header" (non-variable) part of the
 	// RawSMBIOSData struct. This serves as both the offset to the actual
@@ -59,10 +65,10 @@ func nativeEndian() binary.ByteOrder {
 func stream() (io.ReadCloser, EntryPoint, error) {
 	// Call first with empty buffer to get size.
 	r1, _, err := procGetSystemFirmwareTable.Call(
-		uintptr(firmwareTableProviderSigRSMB),
-		uintptr(0),
-		uintptr(0),
-		uintptr(0),
+		uintptr(firmwareTableProviderSigRSMB), // FirmwareTableProviderSignature = 'RSMB'
+		0,                                     // FirmwareTableID = 0
+		0,                                     // pFirmwareTableBuffer = NULL
+		0,                                     // BufferSize = 0
 	)
 
 	// LazyProc.Call will always return err != nil, so we need to check the primary
@@ -83,10 +89,10 @@ func stream() (io.ReadCloser, EntryPoint, error) {
 	buffer := make([]byte, bufferSize)
 
 	r1, _, err = procGetSystemFirmwareTable.Call(
-		uintptr(firmwareTableProviderSigRSMB),
-		uintptr(0),
-		uintptr(unsafe.Pointer(&buffer[0])),
-		uintptr(bufferSize),
+		uintptr(firmwareTableProviderSigRSMB), // FirmwareTableProviderSignature = 'RSMB'
+		0,                                     // FirmwareTableID = 0
+		uintptr(unsafe.Pointer(&buffer[0])),   // pFirmwareTableBuffer = &buffer
+		uintptr(bufferSize),                   // BufferSize = bufferSize
 	)
 	bytesWritten := uint32(r1)
 
