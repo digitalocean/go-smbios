@@ -16,7 +16,6 @@ package smbios
 
 import (
 	"bytes"
-	"encoding/binary"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -95,16 +94,20 @@ func stream() (io.ReadCloser, EntryPoint, error) {
 	//		BYTE 	SMBIOSTableData[];
 	//	}
 
-	// There should now be a RawSMBIOSData struct located at the beginning of the
-	// buffer.
+	tableSize := nativeByteOrder.Uint32(buffer[4:8])
+	// Paraoid check to make sure we don't try to go past the end of the buffer
+	// if the byte order was wrong.
+	if tableSize > bufferSize-8 {
+		tableSize = bufferSize - 8
+	}
 	entryPoint := &WindowsEntryPoint{
 		MajorVersion: buffer[1],
 		MinorVersion: buffer[2],
 		Revision:     buffer[3],
-		Size:         binary.LittleEndian.Uint32(buffer[4:8]),
+		Size:         tableSize,
 	}
 
-	tableBuff := buffer[8:]
+	tableBuff := buffer[8 : 8+tableSize]
 
 	return ioutil.NopCloser(bytes.NewReader(tableBuff)), entryPoint, nil
 }
