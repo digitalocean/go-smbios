@@ -25,21 +25,19 @@ import (
 	"unsafe"
 )
 
-const (
-	// firmwareTableProviderSigRSMB is the identifier for the raw SMBIOS firmware table
-	// provider.
-	// It is equal to the ASCII characters 'RSMB' packed into a uint32.
-	// In the C++ example code in the MSDN documentation, this is specified using
-	// multi-byte character literals, which are automatically coerced to an integer by
-	// the C++ compiler.
-	firmwareTableProviderSigRSMB uint32 = 0x52534d42
+// firmwareTableProviderSigRSMB is the identifier for the raw SMBIOS firmware table
+// provider.
+// It is equal to the ASCII characters 'RSMB' packed into a uint32.
+// In the C++ example code in the MSDN documentation, this is specified using
+// multi-byte character literals, which are automatically coerced to an integer by
+// the C++ compiler.
+const firmwareTableProviderSigRSMB uint32 = 0x52534d42
 
-	// smbiosDataHeaderSize is size of the "header" (non-variable) part of the
-	// RawSMBIOSData struct. This serves as both the offset to the actual
-	// SMBIOS table data, and the minimum possible size of a valid RawSMBIOSDATA
-	// struct (with a table length of 0).
-	rawSMBIOSDataHeaderSize = 8
-)
+// smbiosDataHeaderSize is size of the "header" (non-variable) part of the
+// RawSMBIOSData struct. This serves as both the offset to the actual
+// SMBIOS table data, and the minimum possible size of a valid RawSMBIOSDATA
+// struct (with a table length of 0).
+const rawSMBIOSDataHeaderSize = 8
 
 var (
 	libKernel32 = syscall.NewLazyDLL("kernel32.dll")
@@ -60,6 +58,52 @@ func nativeEndian() binary.ByteOrder {
 	}
 
 	return binary.BigEndian
+}
+
+// windowsStream parses the data returned from GetSystemFirmwareTable('RSMB',...)
+// and returns a stream and entrypoint that can be used to decode the system's
+// SMBIOS table.
+//
+// When calling GetSystemFirmwareTable with FirmwareTableProviderSignature = "RSMB",
+// Windows will write a RawSMBIOSData struct into the output buffer.
+// Thus, `buf` is expected to contain a valid RawSMBIOSData structure.
+//
+//	From windows.h:
+//
+// 	struct RawSMBIOSData {
+//		BYTE 	Used20CallingMethod;
+//		BYTE	SMBIOSMajorVersion;
+//		BYTE 	SMBIOSMinorVersion;
+//		BYTE 	DMIRevision;
+//		DWORD 	Length;
+//		BYTE 	SMBIOSTableData[];
+//	}
+//
+// Note: a DWORD is equivalent to a uint32
+// See: https://msdn.microsoft.com/en-us/library/cc230318.aspx
+func windowsStream(buf []byte) (io.ReadCloser, EntryPoint, error) {
+	bufLen := uint32(len(buf))
+
+	// Do an additional check to make sure the actual amount written is sane.
+	if bufLen < rawSMBIOSDataHeaderSize {
+		return nil, nil, fmt.Errorf("GetSystemFirmwareTable wrote less data than expected: wrote %d bytes, expected at least 8 bytes", bufLen)
+	}
+
+	tableSize := nativeEndian().Uint32(buf[4:8])
+	if rawSMBIOSDataHeaderSize+tableSize > bufLen {
+		return nil, nil, errors.New("reported SMBIOS table size exceeds buffer")
+	}
+
+	entryPoint := &WindowsEntryPoint{
+		MajorVersion: buf[1],
+		MinorVersion: buf[2],
+		Revision:     buf[3],
+		Size:         tableSize,
+	}
+
+	tableBuff := buf[rawSMBIOSDataHeaderSize : rawSMBIOSDataHeaderSize+tableSize]
+
+	return ioutil.NopCloser(bytes.NewReader(tableBuff)), entryPoint, nil
 }
 
 func stream() (io.ReadCloser, EntryPoint, error) {
@@ -106,38 +150,6 @@ func stream() (io.ReadCloser, EntryPoint, error) {
 
 	// At this point, bytesWritten <= bufferSize, which means the call succeeded as
 	// per the MSDN documentation.
-	// Do an additional check to make sure the actual amount written is sane.
-	if bytesWritten < rawSMBIOSDataHeaderSize {
-		return nil, nil, fmt.Errorf("GetSystemFirmwareTable wrote less data than expected: wrote %d bytes, expected at least 8 bytes", bytesWritten)
-	}
 
-	// When calling GetSystemFirmwareTable with FirmwareTableProviderSignature = "RSMB",
-	// Windows will write a RawSMBIOSData struct into the output buffer.
-	//
-	//	From windows.h:
-	//
-	// 	struct RawSMBIOSData {
-	//		BYTE 	Used20CallingMethod;
-	//		BYTE	SMBIOSMajorVersion;
-	//		BYTE 	SMBIOSMinorVersion;
-	//		BYTE 	DMIRevision;
-	//		DWORD 	Length;	// uint32
-	//		BYTE 	SMBIOSTableData[];
-	//	}
-
-	tableSize := nativeEndian().Uint32(buffer[4:8])
-	if rawSMBIOSDataHeaderSize+tableSize > bytesWritten {
-		return nil, nil, errors.New("reported SMBIOS table size exceeds buffer")
-	}
-
-	entryPoint := &WindowsEntryPoint{
-		MajorVersion: buffer[1],
-		MinorVersion: buffer[2],
-		Revision:     buffer[3],
-		Size:         tableSize,
-	}
-
-	tableBuff := buffer[rawSMBIOSDataHeaderSize : rawSMBIOSDataHeaderSize+tableSize]
-
-	return ioutil.NopCloser(bytes.NewReader(tableBuff)), entryPoint, nil
+	return windowsStream(buffer[:bytesWritten])
 }
