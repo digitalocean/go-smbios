@@ -18,7 +18,9 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/binary"
+	"fmt"
 	"io"
+	"unsafe"
 )
 
 const (
@@ -110,10 +112,80 @@ func (d *Decoder) next() (*Structure, error) {
 		return nil, err
 	}
 
+	systemInfo := SystemInfo{}
+
+	if h.Type == 1 {
+		sysInfo := (*SMBIOSSystemInfo)(unsafe.Pointer(&fb[0]))
+		if h.Length > 8 {
+			only0xFF := 1
+			only0x00 := 1
+			for i := 0; (i < 16) && ((1 == only0x00) || (1 == only0xFF)); i++ {
+				if sysInfo.UUID[i] != 0x00 {
+					only0x00 = 0
+				}
+				if sysInfo.UUID[i] != 0xFF {
+					only0xFF = 0
+				}
+			}
+
+			if 0 == only0xFF && 0 == only0x00 {
+
+				strUUID := fmt.Sprintf("%02X%02X%02X%02X-%02X%02X-%02X%02X-%02X%02X-%02X%02X%02X%02X%02X%02X",
+					sysInfo.UUID[3], sysInfo.UUID[2], sysInfo.UUID[1], sysInfo.UUID[0], sysInfo.UUID[5], sysInfo.UUID[4], sysInfo.UUID[7], sysInfo.UUID[6],
+					sysInfo.UUID[8], sysInfo.UUID[9], sysInfo.UUID[10], sysInfo.UUID[11], sysInfo.UUID[12], sysInfo.UUID[13], sysInfo.UUID[14], sysInfo.UUID[15])
+
+				systemInfo.VirtualMachineUUID = strUUID
+				ss = append(ss, strUUID)
+			}
+		}
+
+		if sysInfo.ProductName > 0 {
+			systemInfo.SystemManufacturerRef = ss[sysInfo.ProductName-1]
+		}
+
+		if sysInfo.SN > 0 {
+			systemInfo.BiosSerial = ss[sysInfo.SN-1]
+		}
+	}
+
+	if h.Type == 2 {
+		mbInfo := (*SMBIOSBaseboardInfo)(unsafe.Pointer(&fb[0]))
+		if mbInfo.SerialNumber > 0 {
+			systemInfo.MotherboardAdapter = ss[mbInfo.SerialNumber-1]
+		}
+	}
+
+	if h.Type == 4 {
+		procInfo := (*SMBIOSProcessorType)(unsafe.Pointer(&fb[0]))
+		isValidProcessorID := false
+		for i := 0; i < len(procInfo.ProcessorID); i++ {
+			if procInfo.ProcessorID[i] > 0 {
+				isValidProcessorID = true
+				break
+			}
+		}
+		if isValidProcessorID {
+			cpuID := fmt.Sprintf("%04X%04X%04X%04X", procInfo.ProcessorID[3], procInfo.ProcessorID[2], procInfo.ProcessorID[1], procInfo.ProcessorID[0])
+			systemInfo.ProcessorID = cpuID
+		}
+		if procInfo.ProcessorType > 0 {
+			pType := fmt.Sprintf("%01X", procInfo.ProcessorType)
+			systemInfo.ProcessorType = pType
+		}
+	}
+
+	if h.Type == 17 {
+		memInfo := (*SMBIOSMemoryInfo)(unsafe.Pointer(&fb[0]))
+		if memInfo.SerialNumber > 0 {
+			systemInfo.Memory = ss[memInfo.SerialNumber-1]
+		}
+	}
+
 	return &Structure{
-		Header:    *h,
-		Formatted: fb,
-		Strings:   ss,
+		Header:     *h,
+		Formatted:  fb,
+		Strings:    ss,
+		SystemInfo: systemInfo,
 	}, nil
 }
 
@@ -150,6 +222,38 @@ func (d *Decoder) parseFormatted(l int) ([]byte, error) {
 	copy(fb, d.b[:l])
 
 	return fb, nil
+}
+
+func (d *Decoder) parseField() ([]string, error) {
+	term, err := d.br.Peek(2)
+	if err != nil {
+		return nil, err
+	}
+
+	// If no string-set present, discard delimeter and end parsing.
+	if bytes.Equal(term, endStringSet) {
+		if _, err := d.br.Discard(2); err != nil {
+			return nil, err
+		}
+
+		return nil, nil
+	}
+
+	var ss []string
+	for {
+		s, more, err := d.parseString()
+		if err != nil {
+			return nil, err
+		}
+
+		// When final string is received, end parse loop.
+		ss = append(ss, s)
+		if !more {
+			break
+		}
+	}
+
+	return ss, nil
 }
 
 // parseStrings parses a Structure's strings from the stream, if they
