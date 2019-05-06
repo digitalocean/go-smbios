@@ -54,6 +54,13 @@ type SMBIOSBaseboardInfo struct {
 	ObjectHandles      uintptr
 }
 
+type BaseboardInfo struct {
+	Manufacturer string
+	Product      string
+	Version      string
+	SerialNumber string
+}
+
 type SMBIOSMemoryInfo struct {
 	MemArrayHandle          uint16
 	MemErrorInfoHandle      uint16
@@ -77,6 +84,23 @@ type SMBIOSMemoryInfo struct {
 	MinVoltage              uint16
 	MaxVoltage              uint16
 	ConfiguredVoltage       uint16
+}
+
+type BIOSInfoRead struct {
+	Vendor  byte
+	Version byte
+}
+
+type BIOSInfo struct {
+	Vendor  string
+	Version string
+}
+
+type SystemInfoRead struct {
+	Manufacturer string
+	ProductName  string
+	Version      string
+	SerialNumber string
 }
 
 type SMBIOSProcessorInfo struct {
@@ -117,12 +141,18 @@ type SMBIOSProcessorType struct {
 	ThreadCount2             uint16
 }
 
+type Processor struct {
+	ID              string
+	Family          int
+	Product         string
+	CoreCount       int
+	ClockSpeedInMHz int
+}
+
 type SystemInfo struct {
-	SystemManufacturerRef string
-	BiosSerial            string
-	VirtualMachineUUID    string
-	MotherboardAdapter    string
-	Memory                string
-	ProcessorType         string
-	ProcessorID           string
+	SystemManufacturerRef, BiosSerial, VirtualMachineUUID,
+	MotherboardAdapter, Memory, ProcessorType, ProcessorID string
+	BiosInfo      *BIOSInfo
+	BaseboardInfo *BaseboardInfo
+	Processors    []*Processor
 }

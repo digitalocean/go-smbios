@@ -71,6 +71,8 @@ func NewDecoder(r io.Reader) *Decoder {
 	}
 }
 
+type Extract func([]string) error
+
 // Decode decodes Structures from the Decoder's stream until an End-of-table
 // structure is found.
 func (d *Decoder) Decode() ([]*Structure, error) {
@@ -150,14 +152,30 @@ func (d *Decoder) next() (*Structure, error) {
 
 	if h.Type == 2 {
 		mbInfo := (*SMBIOSBaseboardInfo)(unsafe.Pointer(&fb[0]))
-		if mbInfo.SerialNumber > 0 {
-			systemInfo.MotherboardAdapter = ss[mbInfo.SerialNumber-1]
+		bbInfo := &BaseboardInfo{}
+		valArrSize := byte(len(ss))
+		if mbInfo.Manufacturer > 0 && mbInfo.Manufacturer <= valArrSize {
+			bbInfo.Manufacturer = ss[mbInfo.Manufacturer-1]
 		}
+		if mbInfo.Product > 0 && mbInfo.Product <= valArrSize {
+			bbInfo.Product = ss[mbInfo.Product-1]
+		}
+		if mbInfo.Version > 0 && mbInfo.Version <= valArrSize {
+			bbInfo.Version = ss[mbInfo.Version-1]
+		}
+
+		if mbInfo.SerialNumber > 0 && mbInfo.SerialNumber <= valArrSize {
+			val := ss[mbInfo.SerialNumber-1]
+			systemInfo.MotherboardAdapter = val
+			bbInfo.SerialNumber = val
+		}
+		systemInfo.BaseboardInfo = bbInfo
 	}
 
 	if h.Type == 4 {
 		procInfo := (*SMBIOSProcessorType)(unsafe.Pointer(&fb[0]))
 		isValidProcessorID := false
+		processor := &Processor{}
 		for i := 0; i < len(procInfo.ProcessorID); i++ {
 			if procInfo.ProcessorID[i] > 0 {
 				isValidProcessorID = true
@@ -167,18 +185,46 @@ func (d *Decoder) next() (*Structure, error) {
 		if isValidProcessorID {
 			cpuID := fmt.Sprintf("%04X%04X%04X%04X", procInfo.ProcessorID[3], procInfo.ProcessorID[2], procInfo.ProcessorID[1], procInfo.ProcessorID[0])
 			systemInfo.ProcessorID = cpuID
+			processor.ID = cpuID
 		}
 		if procInfo.ProcessorType > 0 {
 			pType := fmt.Sprintf("%01X", procInfo.ProcessorType)
 			systemInfo.ProcessorType = pType
 		}
-	}
+		if procInfo.ProcessorFamily > 0 {
+			processor.Family = int(procInfo.ProcessorFamily)
+		}
+		if procInfo.CoreCount > 0 {
+			processor.CoreCount = int(procInfo.CoreCount)
+		}
 
+		valArrSize := byte(len(ss))
+		if procInfo.ProcessorManufacturer > 0 && procInfo.ProcessorManufacturer <= valArrSize {
+			processor.Product = ss[procInfo.ProcessorManufacturer]
+		}
+		if procInfo.CurrentSpeed > 0 {
+			processor.ClockSpeedInMHz = int(procInfo.CurrentSpeed)
+		}
+		systemInfo.Processors = append(systemInfo.Processors, processor)
+	}
 	if h.Type == 17 {
 		memInfo := (*SMBIOSMemoryInfo)(unsafe.Pointer(&fb[0]))
 		if memInfo.SerialNumber > 0 {
 			systemInfo.Memory = ss[memInfo.SerialNumber-1]
 		}
+	}
+	if h.Type == 0 {
+		bios := (*BIOSInfoRead)(unsafe.Pointer(&fb[0]))
+		biosInfo := &BIOSInfo{}
+		valArrSize := byte(len(ss))
+		if bios.Vendor > 0 && bios.Vendor <= valArrSize {
+			biosInfo.Vendor = ss[bios.Vendor-1]
+		}
+		if bios.Version > 0 && bios.Version <= valArrSize {
+			biosInfo.Version = ss[bios.Version-1]
+		}
+		systemInfo.BiosInfo = biosInfo
+
 	}
 
 	return &Structure{
