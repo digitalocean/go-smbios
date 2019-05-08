@@ -150,7 +150,7 @@ type Processor struct {
 }
 
 type SystemInfo struct {
-	SystemManufacturerRef, BiosSerial, VirtualMachineUUID,
+	SystemManufacturerRef, SystemProductName, BiosSerial, VirtualMachineUUID,
 	MotherboardAdapter, Memory, ProcessorType, ProcessorID string
 	BiosInfo      *BIOSInfo
 	BaseboardInfo *BaseboardInfo
