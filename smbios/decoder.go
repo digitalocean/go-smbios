@@ -145,9 +145,14 @@ func (d *Decoder) next() (*Structure, error) {
 			systemInfo.SystemManufacturerRef = ss[sysInfo.ProductName-1]
 		}
 
+		if sysInfo.Manufacturer > 0 {
+			systemInfo.SystemProductName = ss[sysInfo.Manufacturer-1]
+		}
+		
 		if sysInfo.SN > 0 {
 			systemInfo.BiosSerial = ss[sysInfo.SN-1]
 		}
+
 	}
 
 	if h.Type == 2 {
