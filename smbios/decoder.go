@@ -20,6 +20,8 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"strconv"
+	"strings"
 	"unsafe"
 )
 
@@ -29,6 +31,10 @@ const (
 
 	// typeEndOfTable indicates the end of a stream of Structures.
 	typeEndOfTable = 127
+
+	extendedSizeThreyshold = 32767
+
+	mbToByteConvRatio = 1048576
 )
 
 var (
@@ -39,8 +45,9 @@ var (
 
 // A Decoder decodes Structures from a stream.
 type Decoder struct {
-	br *bufio.Reader
-	b  []byte
+	br      *bufio.Reader
+	b       []byte
+	Version SMBIOSVersion
 }
 
 // Stream locates and opens a stream of SMBIOS data and the SMBIOS entry
@@ -148,7 +155,7 @@ func (d *Decoder) next() (*Structure, error) {
 		if sysInfo.Manufacturer > 0 {
 			systemInfo.SystemProductName = ss[sysInfo.Manufacturer-1]
 		}
-		
+
 		if sysInfo.SN > 0 {
 			systemInfo.BiosSerial = ss[sysInfo.SN-1]
 		}
@@ -174,6 +181,7 @@ func (d *Decoder) next() (*Structure, error) {
 			systemInfo.MotherboardAdapter = val
 			bbInfo.SerialNumber = val
 		}
+
 		systemInfo.BaseboardInfo = bbInfo
 	}
 
@@ -205,7 +213,7 @@ func (d *Decoder) next() (*Structure, error) {
 
 		valArrSize := byte(len(ss))
 		if procInfo.ProcessorManufacturer > 0 && procInfo.ProcessorManufacturer <= valArrSize {
-			processor.Product = ss[procInfo.ProcessorManufacturer]
+			processor.Product = strings.TrimSpace(ss[procInfo.ProcessorManufacturer])
 		}
 		if procInfo.CurrentSpeed > 0 {
 			processor.ClockSpeedInMHz = int(procInfo.CurrentSpeed)
@@ -213,9 +221,40 @@ func (d *Decoder) next() (*Structure, error) {
 		systemInfo.Processors = append(systemInfo.Processors, processor)
 	}
 	if h.Type == 17 {
-		memInfo := (*SMBIOSMemoryInfo)(unsafe.Pointer(&fb[0]))
+		physicalMemory := &PhysicalMemory{}
+		memInfo := (*MemoryInfoRead)(unsafe.Pointer(&fb[0]))
+		arrSize := byte(len(ss))
+		if memInfo.Manufacturer > 0 && memInfo.Manufacturer <= arrSize {
+			index := memInfo.Manufacturer - 2
+			if index >= 0 {
+				physicalMemory.Manufacturer = ss[index]
+			}
+		}
 		if memInfo.SerialNumber > 0 {
-			systemInfo.Memory = ss[memInfo.SerialNumber-1]
+			index := memInfo.SerialNumber - 2
+			memSerNo := ss[index]
+			if index >= 0 {
+				systemInfo.Memory = memSerNo
+				physicalMemory.SerialNumber = memSerNo
+			}
+		}
+		if memInfo.Size > 0 && memInfo.Size <= extendedSizeThreyshold {
+			sizeInMB := int(memInfo.Size)
+			var usizeMB uint64
+			usizeMB = uint64(sizeInMB)
+			sb := usizeMB * uint64(mbToByteConvRatio)
+			physicalMemory.SizeInBytes = sb
+		} else {
+			if memInfo.ExtendedSize > 0 {
+				sizeInMB := int(memInfo.ExtendedSize)
+				var usizeMB uint64
+				usizeMB = uint64(sizeInMB)
+				sb := usizeMB * uint64(mbToByteConvRatio)
+				physicalMemory.SizeInBytes = sb
+			}
+		}
+		if physicalMemory.Manufacturer != "" {
+			systemInfo.PhyMemory = append(systemInfo.PhyMemory, physicalMemory)
 		}
 	}
 	if h.Type == 0 {
@@ -228,6 +267,7 @@ func (d *Decoder) next() (*Structure, error) {
 		if bios.Version > 0 && bios.Version <= valArrSize {
 			biosInfo.Version = ss[bios.Version-1]
 		}
+		biosInfo.BiosVersion = strconv.Itoa(d.Version.Major) + "." + strconv.Itoa(d.Version.Minor)
 		systemInfo.BiosInfo = biosInfo
 
 	}

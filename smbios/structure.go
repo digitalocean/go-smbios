@@ -61,6 +61,7 @@ type BaseboardInfo struct {
 	SerialNumber string
 }
 
+//FIXME and use review
 type SMBIOSMemoryInfo struct {
 	MemArrayHandle          uint16
 	MemErrorInfoHandle      uint16
@@ -86,14 +87,40 @@ type SMBIOSMemoryInfo struct {
 	ConfiguredVoltage       uint16
 }
 
+type MemoryInfoRead struct {
+	MemArrayHandle          uint16
+	MemErrorInfoHandle      uint16
+	TotalWidth              uint16
+	DataWidth               uint16
+	Size                    uint16
+	FormFactor              byte
+	DeviceSet               byte
+	DeviceLocator           byte
+	BankLocator             byte
+	MemType                 byte
+	TypeDetail              uint16
+	Speed                   uint16
+	Manufacturer            byte
+	SerialNumber            byte
+	AssetTag                byte
+	PartNumber              byte
+	Attribute               byte
+	ExtendedSize            uint32
+	ConfiguredMemClockSpeed uint16
+	MinVoltage              uint16
+	MaxVoltage              uint16
+	ConfiguredVoltage       uint16
+}
+
 type BIOSInfoRead struct {
 	Vendor  byte
 	Version byte
 }
 
 type BIOSInfo struct {
-	Vendor  string
-	Version string
+	Vendor      string
+	Version     string
+	BiosVersion string
 }
 
 type SystemInfoRead struct {
@@ -155,4 +182,14 @@ type SystemInfo struct {
 	BiosInfo      *BIOSInfo
 	BaseboardInfo *BaseboardInfo
 	Processors    []*Processor
+	PhyMemory     []*PhysicalMemory
+}
+
+type PhysicalMemory struct {
+	Manufacturer, SerialNumber string
+	SizeInBytes                uint64
+}
+
+type SMBIOSVersion struct {
+	Major, Minor, Revision int
 }
