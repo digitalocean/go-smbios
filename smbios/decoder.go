@@ -267,7 +267,9 @@ func (d *Decoder) next() (*Structure, error) {
 		if bios.Version > 0 && bios.Version <= valArrSize {
 			biosInfo.Version = ss[bios.Version-1]
 		}
-		biosInfo.BiosVersion = strconv.Itoa(d.Version.Major) + "." + strconv.Itoa(d.Version.Minor)
+		if d.Version.Major != "" && d.Version.Minor != "" {
+			biosInfo.BiosVersion = strconv.Itoa(d.Version.Major) + "." + strconv.Itoa(d.Version.Minor)
+		}
 		systemInfo.BiosInfo = biosInfo
 
 	}
