@@ -253,9 +253,9 @@ func (d *Decoder) next() (*Structure, error) {
 				physicalMemory.SizeInBytes = sb
 			}
 		}
-		if physicalMemory.Manufacturer != "" {
-			systemInfo.PhyMemory = append(systemInfo.PhyMemory, physicalMemory)
-		}
+
+		systemInfo.PhyMemory = append(systemInfo.PhyMemory, physicalMemory)
+
 	}
 	if h.Type == 0 {
 		bios := (*BIOSInfoRead)(unsafe.Pointer(&fb[0]))
