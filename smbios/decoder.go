@@ -159,7 +159,6 @@ func (d *Decoder) next() (*Structure, error) {
 		if sysInfo.SN > 0 {
 			systemInfo.BiosSerial = ss[sysInfo.SN-1]
 		}
-
 	}
 
 	if h.Type == 2 {
@@ -271,7 +270,9 @@ func (d *Decoder) next() (*Structure, error) {
 			biosInfo.BiosVersion = strconv.Itoa(d.Version.Major) + "." + strconv.Itoa(d.Version.Minor)
 		}
 		systemInfo.BiosInfo = biosInfo
-
+		if bios.ReleaseDate > 0 {
+			systemInfo.BiosInfo.ReleaseDate = ss[bios.ReleaseDate-1]
+		}
 	}
 
 	return &Structure{
