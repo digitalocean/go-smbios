@@ -113,14 +113,17 @@ type MemoryInfoRead struct {
 }
 
 type BIOSInfoRead struct {
-	Vendor  byte
-	Version byte
+	Vendor      byte
+	Version     byte
+	StartAddSeg uint16
+	ReleaseDate byte
 }
 
 type BIOSInfo struct {
 	Vendor      string
 	Version     string
 	BiosVersion string
+	ReleaseDate string
 }
 
 type SystemInfoRead struct {
