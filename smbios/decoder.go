@@ -206,8 +206,16 @@ func (d *Decoder) next() (*Structure, error) {
 		if procInfo.ProcessorFamily > 0 {
 			processor.Family = int(procInfo.ProcessorFamily)
 		}
-		if procInfo.CoreCount > 0 {
-			processor.CoreCount = int(procInfo.CoreCount)
+		//This is available at SMBIOS documentation
+		if d.Version.Major >= 3 || d.Version.Minor < 5 || d.Version.Minor > 9 {
+			if procInfo.CoreCount2 > 0 {
+				processor.CoreCount = int(procInfo.CoreCount2)
+			}
+		} else {
+			if procInfo.CoreCount > 0 {
+				processor.CoreCount = int(procInfo.CoreCount)
+			}
+
 		}
 
 		valArrSize := byte(len(ss))
