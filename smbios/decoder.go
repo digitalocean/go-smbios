@@ -219,7 +219,7 @@ func (d *Decoder) next() (*Structure, error) {
 		}
 
 		valArrSize := byte(len(ss))
-		if procInfo.ProcessorManufacturer > 0 && procInfo.ProcessorManufacturer <= valArrSize {
+		if procInfo.ProcessorManufacturer > 0 && procInfo.ProcessorManufacturer < valArrSize {
 			processor.Product = strings.TrimSpace(ss[procInfo.ProcessorManufacturer])
 		}
 		if procInfo.CurrentSpeed > 0 {
@@ -239,8 +239,8 @@ func (d *Decoder) next() (*Structure, error) {
 		}
 		if memInfo.SerialNumber > 0 {
 			index := memInfo.SerialNumber - 2
-			memSerNo := ss[index]
 			if index >= 0 {
+				memSerNo := ss[index]
 				systemInfo.Memory = memSerNo
 				physicalMemory.SerialNumber = memSerNo
 			}
