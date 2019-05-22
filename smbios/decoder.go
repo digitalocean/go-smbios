@@ -219,7 +219,7 @@ func (d *Decoder) next() (*Structure, error) {
 		}
 
 		valArrSize := byte(len(ss))
-		if procInfo.ProcessorManufacturer > 0 && procInfo.ProcessorManufacturer <= valArrSize {
+		if procInfo.ProcessorManufacturer > 0 && procInfo.ProcessorManufacturer < valArrSize {
 			processor.Product = strings.TrimSpace(ss[procInfo.ProcessorManufacturer])
 		}
 		if procInfo.CurrentSpeed > 0 {
