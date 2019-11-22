@@ -237,7 +237,7 @@ func (d *Decoder) next() (*Structure, error) {
 				physicalMemory.Manufacturer = ss[index]
 			}
 		}
-		if memInfo.SerialNumber > 0 {
+		if memInfo.SerialNumber > 0 && memInfo.SerialNumber <= arrSize {
 			index := memInfo.SerialNumber - 2
 			if index >= 0 {
 				memSerNo := ss[index]
