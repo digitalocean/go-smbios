@@ -231,12 +231,16 @@ func (d *Decoder) next() (*Structure, error) {
 		physicalMemory := &PhysicalMemory{}
 		memInfo := (*MemoryInfoRead)(unsafe.Pointer(&fb[0]))
 		arrSize := byte(len(ss))
+
+		// In case of virtual machine Manufacturer may not be reterived, Reason: NOT RETURNED FROM SMBIOS INFO
 		if memInfo.Manufacturer > 0 && memInfo.Manufacturer <= arrSize {
 			index := memInfo.Manufacturer - 2
 			if index >= 0 {
 				physicalMemory.Manufacturer = ss[index]
 			}
 		}
+
+		// In case of virtual machine SerialNumber may not be reterived, Reason: NOT RETURNED FROM SMBIOS INFO
 		if memInfo.SerialNumber > 0 && memInfo.SerialNumber <= arrSize {
 			index := memInfo.SerialNumber - 2
 			if index >= 0 {
@@ -261,8 +265,10 @@ func (d *Decoder) next() (*Structure, error) {
 			}
 		}
 
-		systemInfo.PhyMemory = append(systemInfo.PhyMemory, physicalMemory)
-
+		// Check for the size, if size is zero that means Empty DIMM Slot
+		if physicalMemory.SizeInBytes != 0 {
+			systemInfo.PhyMemory = append(systemInfo.PhyMemory, physicalMemory)
+		}
 	}
 	if h.Type == 0 {
 		bios := (*BIOSInfoRead)(unsafe.Pointer(&fb[0]))
