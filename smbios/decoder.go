@@ -265,6 +265,15 @@ func (d *Decoder) next() (*Structure, error) {
 			}
 		}
 
+		if memInfo.TotalWidth > 0 {
+			totalWidth := uint64(memInfo.TotalWidth)
+			physicalMemory.TotalWidth = totalWidth
+		}
+		if memInfo.DataWidth > 0 {
+			dataWidth := uint64(memInfo.DataWidth)
+			physicalMemory.DataWidth = dataWidth
+		}
+
 		// Check for the size, if size is zero that means Empty DIMM Slot
 		if physicalMemory.SizeInBytes != 0 {
 			systemInfo.PhyMemory = append(systemInfo.PhyMemory, physicalMemory)
