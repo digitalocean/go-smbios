@@ -191,6 +191,8 @@ type SystemInfo struct {
 type PhysicalMemory struct {
 	Manufacturer, SerialNumber string
 	SizeInBytes                uint64
+	TotalWidth                 uint64
+	DataWidth                  uint64
 }
 
 type SMBIOSVersion struct {
