@@ -35,6 +35,7 @@ const (
 	extendedSizeThreyshold = 32767
 
 	mbToByteConvRatio = 1048576
+	kbToByteConvRatio = 1024
 )
 
 var (
@@ -249,21 +250,24 @@ func (d *Decoder) next() (*Structure, error) {
 				physicalMemory.SerialNumber = memSerNo
 			}
 		}
-		if memInfo.Size > 0 && memInfo.Size <= extendedSizeThreyshold {
-			sizeInMB := int(memInfo.Size)
-			var usizeMB uint64
-			usizeMB = uint64(sizeInMB)
-			sb := usizeMB * uint64(mbToByteConvRatio)
-			physicalMemory.SizeInBytes = sb
-		} else {
-			if memInfo.ExtendedSize > 0 {
-				sizeInMB := int(memInfo.ExtendedSize)
-				var usizeMB uint64
-				usizeMB = uint64(sizeInMB)
-				sb := usizeMB * uint64(mbToByteConvRatio)
-				physicalMemory.SizeInBytes = sb
-			}
+
+		memSize := uint64(memInfo.Size)
+		//If the memInfo.Size size is 32GB or greater, we need to parse the extended field.
+		// Spec says 0x7fff(extendedSizeThreyshold) in regular size field means we should parse the extended.
+		if memInfo.Size == extendedSizeThreyshold {
+			memSize = uint64(memInfo.ExtendedSize)
 		}
+
+		// The granularity in which the value is specified
+		// depends on the setting of the most-significant bit (bit
+		// 15). If the bit is 0, the value is specified in megabyte
+		// units; if the bit is 1, the value is specified in kilobyte
+		// units.
+		memSizeInByte := memSize * uint64(kbToByteConvRatio)
+		if fb[9]&0x80 == 0 {
+			memSizeInByte = memSize * uint64(mbToByteConvRatio)
+		}
+		physicalMemory.SizeInBytes = memSizeInByte
 
 		if memInfo.TotalWidth > 0 {
 			physicalMemory.TotalWidth = uint64(memInfo.TotalWidth)
