@@ -233,28 +233,50 @@ func (d *Decoder) next() (*Structure, error) {
 
 		var memInfo MemoryInfoRead
 		//Note:- For description of each field please refer the pdf 'DSP0134_3.0.0.pdf', which is available in the same repo.
-		memInfo.MemArrayHandle = binary.LittleEndian.Uint16(fb[0:2])            //This will copy 2 Bytes related to 'Physical Memory Array Handle'
-		memInfo.MemErrorInfoHandle = binary.LittleEndian.Uint16(fb[2:4])        //This will copy 2 Bytes related to 'Memory Error Information Handle'
-		memInfo.TotalWidth = binary.LittleEndian.Uint16(fb[4:6])                //This will copy 2 Bytes related to 'Total Width'
-		memInfo.DataWidth = binary.LittleEndian.Uint16(fb[6:8])                 //This will copy 2 Bytes related to 'Data Width'
-		memInfo.Size = binary.LittleEndian.Uint16(fb[8:10])                     //This will copy 2 Bytes related to 'Size'
-		memInfo.FormFactor = fb[10]                                             //This will copy 1 Byte related to 'Form Factor'
-		memInfo.DeviceSet = fb[11]                                              //This will copy 1 Byte related to 'Device Set'
-		memInfo.DeviceLocator = fb[12]                                          //This will copy 1 Byte related to 'Device Locator'
-		memInfo.BankLocator = fb[13]                                            //This will copy 1 Byte related to 'Bank Locator'
-		memInfo.MemType = fb[14]                                                //This will copy 1 Byte related to 'Memory Type'
-		memInfo.TypeDetail = binary.LittleEndian.Uint16(fb[15:17])              //This will copy 2 Bytes related to 'Type Detail'
-		memInfo.Speed = binary.LittleEndian.Uint16(fb[17:19])                   //This will copy 2 Bytes related to 'Speed'
-		memInfo.Manufacturer = fb[19]                                           //This will copy 1 Byte related to 'Index of the Manufacturer string'
-		memInfo.SerialNumber = fb[20]                                           //This will copy 1 Byte related to 'Index of the SerialNumber string'
-		memInfo.AssetTag = fb[21]                                               //This will copy 1 Byte related to 'Index of the AssetTag string'
-		memInfo.PartNumber = fb[22]                                             //This will copy 1 Byte related to 'Index of the PartNumber string'
-		memInfo.Attribute = fb[23]                                              //This will copy 1 Byte related to 'Attribute'
-		memInfo.ExtendedSize = binary.LittleEndian.Uint32(fb[24:28])            //This will copy 4 Bytes related to 'Extended Memory Size'
-		memInfo.ConfiguredMemClockSpeed = binary.LittleEndian.Uint16(fb[28:30]) //This will copy 2 Bytes related to 'Configured Memory Clock Speed'
-		memInfo.MinVoltage = binary.LittleEndian.Uint16(fb[30:32])              //This will copy 2 Bytes related to 'Minimum voltage'
-		memInfo.MaxVoltage = binary.LittleEndian.Uint16(fb[32:34])              //This will copy 2 Bytes related to 'Maximum voltage'
-		memInfo.ConfiguredVoltage = binary.LittleEndian.Uint16(fb[34:36])       //This will copy 2 Bytes related to 'Configured voltage'
+		//This will copy 2 Bytes related to 'Physical Memory Array Handle'
+		memInfo.MemArrayHandle = binary.LittleEndian.Uint16(fb[0:2])
+		//This will copy 2 Bytes related to 'Memory Error Information Handle'
+		memInfo.MemErrorInfoHandle = binary.LittleEndian.Uint16(fb[2:4])
+		//This will copy 2 Bytes related to 'Total Width'
+		memInfo.TotalWidth = binary.LittleEndian.Uint16(fb[4:6])
+		//This will copy 2 Bytes related to 'Data Width'
+		memInfo.DataWidth = binary.LittleEndian.Uint16(fb[6:8])
+		//This will copy 2 Bytes related to 'Size'
+		memInfo.Size = binary.LittleEndian.Uint16(fb[8:10])
+		//This will copy 1 Byte related to 'Form Factor'
+		memInfo.FormFactor = fb[10]
+		//This will copy 1 Byte related to 'Device Set'
+		memInfo.DeviceSet = fb[11]
+		//This will copy 1 Byte related to 'Device Locator'
+		memInfo.DeviceLocator = fb[12]
+		//This will copy 1 Byte related to 'Bank Locator'
+		memInfo.BankLocator = fb[13]
+		//This will copy 1 Byte related to 'Memory Type'
+		memInfo.MemType = fb[14]
+		//This will copy 2 Bytes related to 'Type Detail'
+		memInfo.TypeDetail = binary.LittleEndian.Uint16(fb[15:17])
+		//This will copy 2 Bytes related to 'Speed'
+		memInfo.Speed = binary.LittleEndian.Uint16(fb[17:19])
+		//This will copy 1 Byte related to 'Index of the Manufacturer string'
+		memInfo.Manufacturer = fb[19]
+		//This will copy 1 Byte related to 'Index of the SerialNumber string'
+		memInfo.SerialNumber = fb[20]
+		//This will copy 1 Byte related to 'Index of the AssetTag string'
+		memInfo.AssetTag = fb[21]
+		//This will copy 1 Byte related to 'Index of the PartNumber string'
+		memInfo.PartNumber = fb[22]
+		//This will copy 1 Byte related to 'Attribute'
+		memInfo.Attribute = fb[23]
+		//This will copy 4 Bytes related to 'Extended Memory Size'
+		memInfo.ExtendedSize = binary.LittleEndian.Uint32(fb[24:28])
+		//This will copy 2 Bytes related to 'Configured Memory Clock Speed'
+		memInfo.ConfiguredMemClockSpeed = binary.LittleEndian.Uint16(fb[28:30])
+		//This will copy 2 Bytes related to 'Minimum voltage'
+		memInfo.MinVoltage = binary.LittleEndian.Uint16(fb[30:32])
+		//This will copy 2 Bytes related to 'Maximum voltage'
+		memInfo.MaxVoltage = binary.LittleEndian.Uint16(fb[32:34])
+		//This will copy 2 Bytes related to 'Configured voltage'
+		memInfo.ConfiguredVoltage = binary.LittleEndian.Uint16(fb[34:36])
 
 		arrSize := byte(len(ss))
 
