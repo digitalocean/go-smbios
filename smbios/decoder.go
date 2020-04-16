@@ -36,6 +36,11 @@ const (
 
 	mbToByteConvRatio = 1048576
 	kbToByteConvRatio = 1024
+	sizeAsPer2_1      = 17
+	sizeAsPer2_3      = 23
+	sizeAsPer2_6      = 24
+	sizeAsPer2_7      = 30
+	sizeAsPer2_8      = 36
 )
 
 var (
@@ -231,52 +236,72 @@ func (d *Decoder) next() (*Structure, error) {
 	if h.Type == 17 {
 		physicalMemory := &PhysicalMemory{}
 
+		fbLen := len(fb)
 		var memInfo MemoryInfoRead
 		//Note:- For description of each field please refer the pdf 'DSP0134_3.0.0.pdf', which is available in the same repo.
-		//This will copy 2 Bytes related to 'Physical Memory Array Handle'
-		memInfo.MemArrayHandle = binary.LittleEndian.Uint16(fb[0:2])
-		//This will copy 2 Bytes related to 'Memory Error Information Handle'
-		memInfo.MemErrorInfoHandle = binary.LittleEndian.Uint16(fb[2:4])
-		//This will copy 2 Bytes related to 'Total Width'
-		memInfo.TotalWidth = binary.LittleEndian.Uint16(fb[4:6])
-		//This will copy 2 Bytes related to 'Data Width'
-		memInfo.DataWidth = binary.LittleEndian.Uint16(fb[6:8])
-		//This will copy 2 Bytes related to 'Size'
-		memInfo.Size = binary.LittleEndian.Uint16(fb[8:10])
-		//This will copy 1 Byte related to 'Form Factor'
-		memInfo.FormFactor = fb[10]
-		//This will copy 1 Byte related to 'Device Set'
-		memInfo.DeviceSet = fb[11]
-		//This will copy 1 Byte related to 'Device Locator'
-		memInfo.DeviceLocator = fb[12]
-		//This will copy 1 Byte related to 'Bank Locator'
-		memInfo.BankLocator = fb[13]
-		//This will copy 1 Byte related to 'Memory Type'
-		memInfo.MemType = fb[14]
-		//This will copy 2 Bytes related to 'Type Detail'
-		memInfo.TypeDetail = binary.LittleEndian.Uint16(fb[15:17])
-		//This will copy 2 Bytes related to 'Speed'
-		memInfo.Speed = binary.LittleEndian.Uint16(fb[17:19])
-		//This will copy 1 Byte related to 'Index of the Manufacturer string'
-		memInfo.Manufacturer = fb[19]
-		//This will copy 1 Byte related to 'Index of the SerialNumber string'
-		memInfo.SerialNumber = fb[20]
-		//This will copy 1 Byte related to 'Index of the AssetTag string'
-		memInfo.AssetTag = fb[21]
-		//This will copy 1 Byte related to 'Index of the PartNumber string'
-		memInfo.PartNumber = fb[22]
-		//This will copy 1 Byte related to 'Attribute'
-		memInfo.Attribute = fb[23]
-		//This will copy 4 Bytes related to 'Extended Memory Size'
-		memInfo.ExtendedSize = binary.LittleEndian.Uint32(fb[24:28])
-		//This will copy 2 Bytes related to 'Configured Memory Clock Speed'
-		memInfo.ConfiguredMemClockSpeed = binary.LittleEndian.Uint16(fb[28:30])
-		//This will copy 2 Bytes related to 'Minimum voltage'
-		memInfo.MinVoltage = binary.LittleEndian.Uint16(fb[30:32])
-		//This will copy 2 Bytes related to 'Maximum voltage'
-		memInfo.MaxVoltage = binary.LittleEndian.Uint16(fb[32:34])
-		//This will copy 2 Bytes related to 'Configured voltage'
-		memInfo.ConfiguredVoltage = binary.LittleEndian.Uint16(fb[34:36])
+		//Checking size as per SMBIOS 2.1 spec
+		if fbLen >= sizeAsPer2_1 {
+			//This will copy 2 Bytes related to 'Physical Memory Array Handle'
+			memInfo.MemArrayHandle = binary.LittleEndian.Uint16(fb[0:2])
+			//This will copy 2 Bytes related to 'Memory Error Information Handle'
+			memInfo.MemErrorInfoHandle = binary.LittleEndian.Uint16(fb[2:4])
+			//This will copy 2 Bytes related to 'Total Width'
+			memInfo.TotalWidth = binary.LittleEndian.Uint16(fb[4:6])
+			//This will copy 2 Bytes related to 'Data Width'
+			memInfo.DataWidth = binary.LittleEndian.Uint16(fb[6:8])
+			//This will copy 2 Bytes related to 'Size'
+			memInfo.Size = binary.LittleEndian.Uint16(fb[8:10])
+			//This will copy 1 Byte related to 'Form Factor'
+			memInfo.FormFactor = fb[10]
+			//This will copy 1 Byte related to 'Device Set'
+			memInfo.DeviceSet = fb[11]
+			//This will copy 1 Byte related to 'Device Locator'
+			memInfo.DeviceLocator = fb[12]
+			//This will copy 1 Byte related to 'Bank Locator'
+			memInfo.BankLocator = fb[13]
+			//This will copy 1 Byte related to 'Memory Type'
+			memInfo.MemType = fb[14]
+			//This will copy 2 Bytes related to 'Type Detail'
+			memInfo.TypeDetail = binary.LittleEndian.Uint16(fb[15:17])
+		}
+
+		//Checking size as per SMBIOS 2.3 spec
+		if fbLen >= sizeAsPer2_3 {
+			//This will copy 2 Bytes related to 'Speed'
+			memInfo.Speed = binary.LittleEndian.Uint16(fb[17:19])
+			//This will copy 1 Byte related to 'Index of the Manufacturer string'
+			memInfo.Manufacturer = fb[19]
+			//This will copy 1 Byte related to 'Index of the SerialNumber string'
+			memInfo.SerialNumber = fb[20]
+			//This will copy 1 Byte related to 'Index of the AssetTag string'
+			memInfo.AssetTag = fb[21]
+			//This will copy 1 Byte related to 'Index of the PartNumber string'
+			memInfo.PartNumber = fb[22]
+		}
+
+		//Checking size as per SMBIOS 2.6 spec
+		if fbLen >= sizeAsPer2_6 {
+			//This will copy 1 Byte related to 'Attribute'
+			memInfo.Attribute = fb[23]
+		}
+
+		//Checking size as per SMBIOS 2.7 spec
+		if fbLen >= sizeAsPer2_7 {
+			//This will copy 4 Bytes related to 'Extended Memory Size'
+			memInfo.ExtendedSize = binary.LittleEndian.Uint32(fb[24:28])
+			//This will copy 2 Bytes related to 'Configured Memory Clock Speed'
+			memInfo.ConfiguredMemClockSpeed = binary.LittleEndian.Uint16(fb[28:30])
+		}
+
+		//Checking size as per SMBIOS 2.8 spec
+		if fbLen >= sizeAsPer2_8 {
+			//This will copy 2 Bytes related to 'Minimum voltage'
+			memInfo.MinVoltage = binary.LittleEndian.Uint16(fb[30:32])
+			//This will copy 2 Bytes related to 'Maximum voltage'
+			memInfo.MaxVoltage = binary.LittleEndian.Uint16(fb[32:34])
+			//This will copy 2 Bytes related to 'Configured voltage'
+			memInfo.ConfiguredVoltage = binary.LittleEndian.Uint16(fb[34:36])
+		}
 
 		arrSize := byte(len(ss))
 
@@ -301,7 +326,7 @@ func (d *Decoder) next() (*Structure, error) {
 		memSize := uint64(memInfo.Size)
 		//If the memInfo.Size size is 32GB or greater, we need to parse the extended field.
 		// Spec says 0x7fff(extendedSizeThreyshold) in regular size field means we should parse the extended.
-		if memInfo.Size == extendedSizeThreyshold {
+		if memInfo.Size == extendedSizeThreyshold && fbLen >= sizeAsPer2_7 {
 			memSize = uint64(memInfo.ExtendedSize)
 		}
 
