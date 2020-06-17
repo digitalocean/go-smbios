@@ -189,6 +189,15 @@ func (d *Decoder) next() (*Structure, error) {
 
 		systemInfo.BaseboardInfo = bbInfo
 	}
+	if h.Type == 3 {
+
+		sysEnclosure := (*SystemEnclosure)(unsafe.Pointer(&fb[0]))
+
+		systemInfo.SystemEnclosure = &SystemEnclosure{}
+
+		systemInfo.SystemEnclosure.Type = sysEnclosure.Type & 0x7F
+
+	}
 
 	if h.Type == 4 {
 		procInfo := (*SMBIOSProcessorType)(unsafe.Pointer(&fb[0]))
