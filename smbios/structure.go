@@ -21,6 +21,16 @@ type Header struct {
 	Handle uint16
 }
 
+//SystemEnclosure struct to fetch the chassis type information
+
+type SystemEnclosure struct {
+
+	Manufacturer byte
+
+	Type         byte
+
+}
+
 // A Structure is an SMBIOS structure.
 type Structure struct {
 	Header     Header
@@ -186,6 +196,7 @@ type SystemInfo struct {
 	BaseboardInfo *BaseboardInfo
 	Processors    []*Processor
 	PhyMemory     []*PhysicalMemory
+	SystemEnclosure *SystemEnclosure
 }
 
 type PhysicalMemory struct {
