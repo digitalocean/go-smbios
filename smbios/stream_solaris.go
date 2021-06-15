@@ -1,4 +1,4 @@
-// Copyright 2017-2018 DigitalOcean.
+// Copyright 2017-2021 DigitalOcean.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,22 +12,27 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//+build dragonfly freebsd netbsd openbsd
-
-// Linux intentionally omitted because it has an alternative method that
-// is used before attempting /dev/mem access.  See stream_linux.go.
-
-// Solaris intentionally omitted because it provides /dev/smbios.
-// See stream_solaris.go
+// +build solaris
 
 package smbios
 
 import (
 	"io"
+	"os"
 )
 
-// stream opens the SMBIOS entry point and an SMBIOS structure stream.
+const devSMBIOS = "/dev/smbios"
+
 func stream() (io.ReadCloser, EntryPoint, error) {
-	// Use the standard UNIX-like system method.
-	return devMemStream()
+	epf, err := os.Open(devSMBIOS)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	ep, err := ParseEntryPoint(epf)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return epf, ep, nil
 }
