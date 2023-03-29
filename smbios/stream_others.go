@@ -12,7 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//+build !dragonfly,!freebsd,!linux,!netbsd,!openbsd,!solaris,!windows
+//go:build !dragonfly && !freebsd && !linux && !netbsd && !openbsd && !solaris && !windows && !darwin
+// +build !dragonfly,!freebsd,!linux,!netbsd,!openbsd,!solaris,!windows,!darwin
 
 package smbios
 
