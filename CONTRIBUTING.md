@@ -5,8 +5,8 @@ The `go-smbios` project makes use of the [GitHub Flow](https://guides.github.com
 for contributions.
 
 If you'd like to contribute to the project, please
-[open an issue](https://github.com/digitalocean/go-smbios/issues/new) or find an
-[existing issue](https://github.com/digitalocean/go-smbios/issues) that you'd like
+[open an issue](https://github.com/yywing/go-smbios/issues/new) or find an
+[existing issue](https://github.com/yywing/go-smbios/issues) that you'd like
 to take on.  This ensures that efforts are not duplicated, and that a new feature
 aligns with the focus of the rest of the repository.
 
@@ -21,7 +21,7 @@ code meets the following criteria:
 
 In addition, if this is your first time contributing to the `go-smbios` project,
 add your name and email address to the
-[AUTHORS](https://github.com/digitalocean/go-smbios/blob/master/AUTHORS) file
+[AUTHORS](https://github.com/yywing/go-smbios/blob/master/AUTHORS) file
 under the "Contributors" section using the format:
 `First Last <email@example.com>`.
 

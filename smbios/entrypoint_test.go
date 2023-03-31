@@ -18,8 +18,8 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/digitalocean/go-smbios/smbios"
 	"github.com/google/go-cmp/cmp"
+	"github.com/yywing/go-smbios/smbios"
 )
 
 func TestParseEntryPoint(t *testing.T) {
